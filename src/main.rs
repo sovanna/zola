@@ -44,6 +44,7 @@ fn main() {
                 matches.value_of("base_url"),
                 output_dir,
                 matches.is_present("drafts"),
+                matches.is_present("index"),
             ) {
                 Ok(()) => console::report_elapsed_time(start),
                 Err(e) => {

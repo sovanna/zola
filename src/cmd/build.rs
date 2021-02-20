@@ -11,6 +11,7 @@ pub fn build(
     base_url: Option<&str>,
     output_dir: Option<&Path>,
     include_drafts: bool,
+    index_data: bool,
 ) -> Result<()> {
     let mut site = Site::new(root_dir, config_file)?;
     if let Some(output_dir) = output_dir {
@@ -21,6 +22,9 @@ pub fn build(
     }
     if include_drafts {
         site.include_drafts();
+    }
+    if index_data {
+        site.include_index_data();
     }
     site.load()?;
     console::notify_site_size(&site);

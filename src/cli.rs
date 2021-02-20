@@ -50,6 +50,10 @@ pub fn build_cli() -> App<'static, 'static> {
                         .long("drafts")
                         .takes_value(false)
                         .help("Include drafts when loading the site"),
+                    Arg::with_name("index")
+                        .long("index")
+                        .takes_value(false)
+                        .help("Export index in json format to third-party search engine."),
                 ]),
             SubCommand::with_name("serve")
                 .about("Serve the site. Rebuild and reload on change automatically")

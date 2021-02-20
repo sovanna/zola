@@ -7,6 +7,8 @@ use config::Config;
 use errors::{bail, Result};
 use library::{Library, Section};
 
+use serde_json;
+
 pub const ELASTICLUNR_JS: &str = include_str!("elasticlunr.min.js");
 
 lazy_static! {
@@ -97,6 +99,50 @@ pub fn build_index(lang: &str, library: &Library, config: &Config) -> Result<Str
     }
 
     Ok(index.to_json())
+}
+
+/// Returns the generated JSON index with all the documents of the site added using
+/// the language given
+/// Errors if the language given is not available in Elasticlunr
+/// TODO: is making `in_search_index` apply to subsections of a `false` section useful?
+pub fn build_index_data(library: &Library, config: &Config) -> Result<String> {
+    // let mut index = Index::new(&build_fields(&config));
+    let mut index = HashMap::new();
+
+    for section in library.sections_values() {
+        if !section.meta.in_search_index {
+            continue;
+        }
+
+        // Don't index redirecting sections
+        if section.meta.redirect_to.is_none() {
+            index.insert(
+                &section.permalink,
+                fill_index(
+                    config,
+                    &section.meta.title,
+                    &section.meta.description,
+                    &section.content,
+                ),
+            );
+        }
+
+        for key in &section.pages {
+            let page = library.get_page_by_key(*key);
+            if !page.meta.in_search_index {
+                continue;
+            }
+
+            index.insert(
+                &page.permalink,
+                fill_index(config, &page.meta.title, &page.meta.description, &page.content),
+            );
+        }
+    }
+
+    let json_string = serde_json::to_string(&index);
+
+    Ok(json_string.unwrap())
 }
 
 fn add_section_to_index(index: &mut Index, section: &Section, library: &Library, config: &Config) {

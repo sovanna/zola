@@ -64,6 +64,7 @@ pub struct Site {
     /// Whether to load draft pages
     include_drafts: bool,
     build_mode: BuildMode,
+    include_index_data: bool,
 }
 
 impl Site {
@@ -100,6 +101,7 @@ impl Site {
             taxonomies: Vec::new(),
             permalinks: HashMap::new(),
             include_drafts: false,
+            include_index_data: false,
             // We will allocate it properly later on
             library: Arc::new(RwLock::new(Library::new(0, 0, false))),
             build_mode: BuildMode::Disk,
@@ -119,6 +121,13 @@ impl Site {
     /// Needs to be called before loading it
     pub fn include_drafts(&mut self) {
         self.include_drafts = true;
+    }
+
+    /// Set the site to build search index.
+    /// Allows to use search index data with third-party search engine
+    /// e.g ApacheSolr, TypeSense
+    pub fn include_index_data(&mut self) {
+        self.include_index_data = true;
     }
 
     /// The index sections are ALWAYS at those paths
@@ -636,6 +645,11 @@ impl Site {
             start = log_time(start, "Built search index");
         }
 
+        if self.include_index_data {
+            self.build_index_data()?;
+            start = log_time(start, "Built search index .json");
+        }
+
         // Render aliases first to allow overwriting
         self.render_aliases()?;
         start = log_time(start, "Rendered aliases");
@@ -686,6 +700,19 @@ impl Site {
         // Processed images will be in static so the last step is to copy it
         self.copy_static_directories()?;
         log_time(start, "Copied static dir");
+
+        Ok(())
+    }
+
+    pub fn build_index_data(&self) -> Result<()> {
+        ensure_directory_exists(&self.output_path)?;
+        // TODO: add those to the SITE_CONTENT map
+
+        // index first
+        create_file(
+            &self.output_path.join("index_data.json"),
+            &format!("{}", search::build_index_data(&self.library.read().unwrap(), &self.config)?),
+        )?;
 
         Ok(())
     }
